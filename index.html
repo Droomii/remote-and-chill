@@ -5,6 +5,7 @@
 		
 		<style>
 			html, body {
+				position:relative;
 				margin:0;
 				height: 100%;
 			}
@@ -70,14 +71,30 @@
 			.table-row{
 				display : table-row;
 			}
+			
+			li {
+				font-size : 0.8rem;
+			}
+			#front{
+				width:100%;
+				height:100%;
+				margin:auto;
+				text-align:center;
+				position:absolute;
+				z-index:100;
+				background-color:rgba(0,0,0, 0.5);
+			}
 		  #messages li { padding: 5px 10px; }
 		  #messages li:nth-child(odd) { background: rgb(212, 238, 255); }
 		</style>
 	</head>
 	<body>
+		<div id='front'>
+			<button id='unmute' style="font-size:5rem;display:inline" onclick='unmuteVideo()'>클릭하여 음소거 해제</button>
+		</div>
 		<div id="container">
 			<div id='movie'>
-				<button id='unmute' style="position:absolute;z-index:100;font-size:5rem;" onclick='unmuteVideo()'>클릭하여 음소거 해제</button>
+				
 				<video width='500px' height='500px' controls>
 				  <source src="/video" type="video/mp4">
 				  <track label='한국어' kind='subtitles' srclang='ko' src='/subtitle' default>
@@ -225,7 +242,7 @@
 			}).resize();
 		function unmuteVideo(){
 			vid.muted = false;
-			$("#unmute").hide();
+			$("#front").hide();
 		}
 		</script>
 	</body>
