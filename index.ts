@@ -5,6 +5,10 @@ app.get('/', (req, res) => {
   res.sendFile(__dirname + '/index.html');
 });
 
+app.get('/host', (req, res) => {
+  res.sendFile(__dirname + '/host.html');
+});
+
 var moviePath = process.argv[2];
 var subtitlePath = process.argv[3];
 app.get('/video', (req, res) =>{

@@ -78,7 +78,7 @@
 		<div id="container">
 			<div id='movie'>
 				<button id='unmute' style="position:absolute;z-index:100;font-size:5rem;" onclick='unmuteVideo()'>클릭하여 음소거 해제</button>
-				<video width='500px' height='500px' controls>
+				<video width='500px' height='500px' controls muted>
 				  <source src="/video" type="video/mp4">
 				  <track label='한국어' kind='subtitles' srclang='ko' src='/subtitle' default>
 				Your browser does not support the video tag.
@@ -100,27 +100,16 @@
 		<script src="/socket.io/socket.io.js"></script>
 		<script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
 		<script>
+			var lastPlay = null;
 			window.onload = function(){
 				var nick = '';
 				while(nick=='' || nick==null){
 					nick = prompt('닉네임을 입력해주세요');
 				}
 				$("#nickname").val(nick);
+				lastPlay = nick;
 			}
-			var vid = document.getElementsByTagName('video')[0];
-			vid.addEventListener('remotePlay', function(){
-				this.play();
-			});
-			
-			vid.addEventListener('remotePause', function(){
-				this.pause();
-			});
-			
-			vid.addEventListener('remoteSeek', function(e){
-				this.currentTime = e.time;
-			});
-			
-			
+			var vid = document.querySelector('video');
 			$(function() {
 				$("#chat-textbox").keypress(function (e) {
 					if(e.which == 13) {
@@ -132,7 +121,8 @@
 			});
 			$(function () {
 				var socket = io();
-
+				
+				console.log("lastPlay " + lastPlay);
 				$('form').submit(function(e) {
 					e.preventDefault(); // prevents page reloading
 					if($('#chat-textbox').val()==''){
@@ -157,59 +147,70 @@
 				
 				socket.on('pause', function(nick){
 					if($('#nickname').val()!=nick){
-						var e = new Event('remotePause');
-						vid.dispatchEvent(e);
+						vid.pause();
 					}
 					if($("li").length > 100){
 						$("li").first().remove();
 					}
+					$('#messages').append($('<li style="font-weight:bold;color:blue">').text(nick+'님이 영상을 멈춤'));
 				});
-
+				
+				
+				
 				socket.on('play', function(playInfo){
 					if($('#nickname').val()!=playInfo.nick){
-						var seek = new Event('remoteSeek');
-						seek.time = playInfo.currTime;
-						vid.dispatchEvent(seek);
-						var e = new Event('remotePlay');
-						vid.dispatchEvent(e);
+						lastPlay = playInfo.nick;
+						vid.currentTime = playInfo.currTime;
+						lastPlay = playInfo.nick;
+						vid.play();
 					}
 					if($("li").length > 100){
 						$("li").first().remove();
 					}
+					$('#messages').append($('<li style="font-weight:bold;color:blue">').text(playInfo.nick+'님이 영상을 재생함'));
 				});
 				
 				socket.on('seek', function(playInfo){
 					if($('#nickname').val()!=playInfo.nick){
-						var seek = new Event('remoteSeek');
-						seek.time = playInfo.currTime;
-						vid.dispatchEvent(seek);
-						var e = new Event('remotePlay');
-						vid.dispatchEvent(e);
+						lastPlay = playInfo.nick;
+						vid.currentTime = playInfo.currTime;
+						vid.play();
 					}
 					if($("li").length > 100){
 						$("li").first().remove();
 					}
-
+					$('#messages').append($('<li style="font-weight:bold;color:blue">').text(playInfo.nick+'님이 영상을 건너뜀'));
 				});
 				
-				// send playback
-				vid.onplay = function(event){
-					console.log('played!!')
-					console.log(event.isTrusted ? 'trusted!!' : 'not trusted!!');
-					if(event.isTrusted){
-						console.log('played by current user');
-						var currTime = vid.currentTime;
-						socket.emit('play', {nick : $('#nickname').val(), currTime:currTime});
+				
+				vid.onplay = function(){
+					if($('#nickname').val()!=''){
+						if(lastPlay==$('#nickname').val()){
+							console.log('played by current user');
+							var currTime = vid.currentTime;
+							socket.emit('play', {nick : $('#nickname').val(), currTime:currTime});
+						}else{
+							lastPlay=$('#nickname').val();
+						}
 					}
 				}
 				
-				vid.onpause = function(event){
-					if(event.isTrusted){
-						console.log('paused by current user');
+				vid.onpause = function(){
+					if($('#nickname').val()!=''){
 						socket.emit('pause', $('#nickname').val());
 					}
 				}
 				
+				vid.onseeked = function(){
+					if($('#nickname').val()!='' && !vid.paused){
+						if(lastPlay==$('#nickname').val()){
+							var currTime = vid.currentTime;
+							socket.emit('seek', {nick : $('#nickname').val(), currTime:currTime});
+						}else{
+							lastPlay=$('#nickname').val();
+						}
+					}
+				}
 			});
 			
 			var $video  = $('video'),
